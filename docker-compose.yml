@@ -5,3 +5,11 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: uptime-tunnel
+    command: tunnel --no-autoupdate --url http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
