@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Uptime Checker</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #111; color: #eee; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #333; }
+    .up { color: #4ade80; }
+    .down { color: #f87171; }
+    .muted { color: #888; font-size: 14px; }
+    button { background: #333; color: #eee; border: 1px solid #555; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Uptime Checker</h1>
+  <p class="muted" id="info">Loading...</p>
+  <button onclick="load()">Refresh</button>
+  <table>
+    <thead><tr><th>Website</th><th>Status</th><th>Code</th><th>Response</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <script src="config.js"></script>
+  <script>
+    async function load() {
+      const info = document.getElementById("info");
+      const rows = document.getElementById("rows");
+      info.textContent = "Checking...";
+      try {
+        const res = await fetch(window.API_URL + "/status");
+        const data = await res.json();
+        rows.innerHTML = "";
+        for (const r of data.results) {
+          const tr = document.createElement("tr");
+          const cells = [
+            r.url,
+            r.up ? "UP" : "DOWN",
+            r.status_code ?? "-",
+            r.response_ms != null ? r.response_ms + " ms" : (r.error || "-"),
+          ];
+          cells.forEach((text, i) => {
+            const td = document.createElement("td");
+            td.textContent = text;
+            if (i === 1) td.className = r.up ? "up" : "down";
+            tr.appendChild(td);
+          });
+          rows.appendChild(tr);
+        }
+        info.textContent = "Last checked: " + new Date(data.checked_at).toLocaleString();
+      } catch (e) {
+        info.textContent = "Cannot reach the API. Is the tunnel running?";
+      }
+    }
+    load();
+  </script>
+</body>
+</html>

@@ -2,8 +2,15 @@ from datetime import datetime, timezone
 
 import httpx
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Uptime Checker")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET"],
+)
 
 SITES = [
     "https://example.com",
