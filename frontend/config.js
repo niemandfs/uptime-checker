@@ -1,1 +1,1 @@
-window.API_URL = "https://dedicated-believes-texas-approximate.trycloudflare.com";
+window.API_URL = "https://proprietary-locale-advocacy-legend.trycloudflare.com";
