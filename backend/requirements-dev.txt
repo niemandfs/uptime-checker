@@ -1,0 +1,4 @@
+# Ambil semua library aplikasi dari requirements.txt
+-r requirements.txt
+# Tool buat jalanin test
+pytest
