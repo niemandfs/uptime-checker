@@ -1,15 +1,73 @@
+# ============================================================
+# docker-compose.yml
+# Ngatur 3 service: database, backend API, dan tunnel.
+# Jalanin semua: docker compose up -d
+# ============================================================
+
 services:
+
+  # ----------------------------------------------------------
+  # DATABASE (PostgreSQL)
+  # Nyimpen riwayat hasil cek website.
+  # ----------------------------------------------------------
+  db:
+    image: postgres:16              # Pakai image resmi PostgreSQL versi 16
+    container_name: uptime-db
+    environment:
+      # Nilai ${...} diambil otomatis dari file .env (nggak ikut ke GitHub)
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      # Data database disimpan di volume "db-data",
+      # jadi nggak hilang walaupun container dimatiin atau dihapus
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      # Ngecek apakah database udah siap nerima koneksi.
+      # $$ dipakai biar compose nggak ngisi variabelnya duluan,
+      # jadi variabelnya dibaca di dalam container.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s                  # Cek tiap 5 detik
+      timeout: 3s                   # Dianggap gagal kalau lebih dari 3 detik
+      retries: 10                   # Dianggap "unhealthy" setelah 10x gagal
+    restart: unless-stopped         # Nyala lagi otomatis, kecuali dimatiin manual
+    # Sengaja NGGAK ada "ports:", jadi database cuma bisa diakses dari dalam jaringan Docker (oleh backend), bukan dari luar.
+
+  # ----------------------------------------------------------
+  # BACKEND (FastAPI)
+  # API yang ngecek website dan nyimpen hasilnya ke database.
+  # ----------------------------------------------------------
   backend:
-    build: ./backend
+    build: ./backend                # Build image dari backend/Dockerfile
     container_name: uptime-backend
     ports:
-      - "8000:8000"
+      - "8000:8000"                 # Port PC 8000 -> port container 8000
+    environment:
+      # Alamat koneksi ke database.
+      # "db" = nama service database di atas (Docker yang nyambungin).
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy  # Tunggu database "healthy" dulu baru start
     restart: unless-stopped
 
+  # ----------------------------------------------------------
+  # TUNNEL (Cloudflare quick tunnel)
+  # Bikin alamat publik *.trycloudflare.com ke backend.
+  # Alamatnya berubah setiap kali container ini restart.
+  # ----------------------------------------------------------
   tunnel:
     image: cloudflare/cloudflared:latest
     container_name: uptime-tunnel
+    # Teruskan trafik dari internet ke backend (lewat jaringan internal Docker)
     command: tunnel --no-autoupdate --url http://backend:8000
     depends_on:
-      - backend
+      - backend                     # Nyala setelah backend nyala
     restart: unless-stopped
+
+# ------------------------------------------------------------
+# VOLUMES
+# Tempat penyimpanan permanen yang dikelola Docker.
+# ------------------------------------------------------------
+volumes:
+  db-data:

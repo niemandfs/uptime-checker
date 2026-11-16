@@ -1,3 +1,8 @@
+# Framework buat bikin API
 fastapi
+# Server yang ngejalanin aplikasi FastAPI
 uvicorn[standard]
+# Buat ngirim request ke website yang dicek
 httpx
+# Buat konek dan ngobrol sama PostgreSQL
+psycopg[binary]
